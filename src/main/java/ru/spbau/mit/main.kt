@@ -1,5 +1,7 @@
 package ru.spbau.mit
 
+import java.io.IOException
+
 data class Dancer(val x0: Int, val y0: Int, val t: Int, val pos: Int) {
     init {
         require((x0 == 0) != (y0 == 0))
@@ -31,9 +33,13 @@ fun solve(w: Int, h: Int, dancers: List<Dancer>): List<Point> {
 
 //http://codeforces.com/contest/848/submission/31870682
 fun main(args: Array<String>) {
-    val (n: Int, w: Int, h: Int) = readLine()!!.split(" ").map(String::toInt)
+    val (n: Int, w: Int, h: Int) = readLine()?.split(" ")?.map(String::toInt)
+            ?: throw IOException("wrong input")
+
     val dancers: List<Dancer> = (0 until n).map { i ->
-        val (g: Int, p: Int, t: Int) = readLine()!!.split(" ").map(String::toInt)
+        val (g: Int, p: Int, t: Int) = readLine()?.split(" ")?.map(String::toInt)
+                ?: throw IOException("wrong input")
+
         val (x, y) = when (g) {
             1 -> Pair(p, 0)
             2 -> Pair(0, p)
