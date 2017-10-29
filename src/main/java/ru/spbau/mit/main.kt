@@ -29,6 +29,7 @@ fun solve(w: Int, h: Int, dancers: List<Dancer>): List<Point> {
     }.sortedBy { point -> point.pos }
 }
 
+//http://codeforces.com/contest/848/submission/31870682
 fun main(args: Array<String>) {
     val (n: Int, w: Int, h: Int) = readLine()!!.split(" ").map(String::toInt)
     val dancers: List<Dancer> = (0 until n).map { i ->
