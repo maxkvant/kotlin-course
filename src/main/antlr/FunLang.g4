@@ -28,6 +28,7 @@ function
 
 parameterNames
     : identifier (',' identifier)*
+    |
     ;
 
 variable
@@ -47,7 +48,7 @@ assignment
     ;
 
 returnn
-    : 'retrurn' expression
+    : 'return' expression
     ;
 
 expression
@@ -60,7 +61,9 @@ functionCall
     ;
 
 arguments
-    : expression (',' expression)*;
+    : expression (',' expression)*
+    |
+    ;
 
 // +, -, *, /, %, >, <, >=, <=, ==, !=, ||, &&
 

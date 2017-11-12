@@ -8,9 +8,13 @@ import ru.spbau.mit.parser.FunLangParser
 
 fun main(args: Array<String>) {
     val str = """| var a = 0
-                 | while (a - 100000000) {
-                 |   a = a + 1
+                 | fun f(a) {
+                 |     return a + 1
+                 | }
+                 | while (a - 10) {
+                 |   a = f(a)
                  |   var b = 0
+                 |   println(a, b)
                  | }
                  |
               """.trimMargin()

@@ -94,7 +94,7 @@ class Visitor : FunLangBaseVisitor<Node>() {
                 val expressions = ctx.functionCall().arguments().expression().map {
                     visitExpression(it)
                 }
-                FunctionCall(visitIdentifier(ctx.identifier()), expressions)
+                FunctionCall(visitIdentifier(ctx.functionCall().identifier()), expressions)
             }
             else -> throw RuntimeException()
         }
