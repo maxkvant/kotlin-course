@@ -63,6 +63,7 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
         } else {
             val variableScope2 = Scope(variableScope)
             val functionScope2 = Scope(functionScope)
+            functionScope2.put(func.name, func)
 
             func.params.zip(args).forEach({ (name, value) ->
                 variableScope2.put(name, value)

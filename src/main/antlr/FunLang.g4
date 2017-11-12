@@ -36,7 +36,7 @@ variable
     ;
 
 iff
-    : blockWithBraces '(' expression ')' ( 'else' blockWithBraces )
+    : 'if' '(' expression ')' blockWithBraces ( 'else' blockWithBraces )?
     ;
 
 whilee
