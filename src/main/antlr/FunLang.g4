@@ -52,8 +52,7 @@ returnn
     ;
 
 expression
-    : simpleExpression
-    | binaryExpression
+    : arifmeticExpression
     ;
 
 functionCall
@@ -71,16 +70,16 @@ simpleExpression
     : functionCall
     | identifier
     | literal
-    | '(' simpleExpression ')'
+    | '(' expression ')'
     ;
 
-binaryExpression
-    : additiveExpression
+arifmeticExpression
+    : logicalOrExpression
     ;
 
 multiplicativeExpression
     :   simpleExpression
-    |   multiplicativeExpression multiplicativeOp expression
+    |   multiplicativeExpression multiplicativeOp simpleExpression
     ;
 
 multiplicativeOp
@@ -99,9 +98,9 @@ additiveOp
     | '-'
     ;
 
-/*relationalExpression
+relationalExpression
     :   additiveExpression
-    |   relationalExpression relationalOp additiveExpression
+    |   additiveExpression relationalOp additiveExpression
     ;
 
 relationalOp
@@ -109,27 +108,19 @@ relationalOp
     | '>'
     | '<='
     | '>='
-    ;
-
-equalityExpression
-    :   relationalExpression
-    |   equalityExpression equalityOp relationalExpression
-    ;
-
-equalityOp
-    : '=='
+    | '=='
     | '!='
     ;
 
 logicalAndExpression
-    :   equalityExpression
-    |   logicalAndExpression '&&' equalityExpression
+    :   relationalExpression
+    |   logicalAndExpression '&&' relationalExpression
     ;
 
 logicalOrExpression
     :   logicalAndExpression
     |   logicalOrExpression '||' logicalAndExpression
-    ;*/
+    ;
 
 // --------------------------------------------
 

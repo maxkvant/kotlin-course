@@ -64,18 +64,40 @@ class Visitor : FunLangBaseVisitor<Node>() {
     }
 
     override fun visitExpression(ctx: FunLangParser.ExpressionContext?): Expression {
+        return visitLogicalOrExpression(ctx!!.arifmeticExpression().logicalOrExpression())
+    }
+
+    override fun visitLogicalOrExpression(ctx: FunLangParser.LogicalOrExpressionContext?): Expression {
         return when {
-            ctx!!.simpleExpression() is FunLangParser.SimpleExpressionContext ->
-                visitSimpleExpression(ctx.simpleExpression())
-            ctx.binaryExpression() is FunLangParser.BinaryExpressionContext ->
-                visitBinaryExpression(ctx.binaryExpression())
+            ctx!!.logicalOrExpression() is FunLangParser.LogicalOrExpressionContext -> {
+                val l = visitLogicalOrExpression(ctx.logicalOrExpression())
+                val r = visitLogicalAndExpression(ctx.logicalAndExpression())
+                genBinOp(l, "||", r)
+            }
+            else -> visitLogicalAndExpression(ctx.logicalAndExpression())
+        }
+    }
+
+    override fun visitLogicalAndExpression(ctx: FunLangParser.LogicalAndExpressionContext?): Expression {
+        return when {
+            ctx!!.logicalAndExpression() is FunLangParser.LogicalAndExpressionContext -> {
+                val l = visitLogicalAndExpression(ctx.logicalAndExpression())
+                val r = visitRelationalExpression(ctx.relationalExpression())
+                genBinOp(l, "&&", r)
+            }
+            else -> visitRelationalExpression(ctx.relationalExpression())
+        }
+    }
+
+    override fun visitRelationalExpression(ctx: FunLangParser.RelationalExpressionContext?): Expression {
+        val expressions = ctx!!.additiveExpression().map(this::visitAdditiveExpression)
+        return when (expressions.size) {
+            1 -> expressions[0]
+            2 -> genBinOp(expressions[0], ctx.relationalOp().text, expressions[1])
             else -> throw RuntimeException()
         }
     }
 
-    override fun visitBinaryExpression(ctx: FunLangParser.BinaryExpressionContext?): Expression {
-        return visitAdditiveExpression(ctx!!.additiveExpression())
-    }
 
     override fun visitAssignment(ctx: FunLangParser.AssignmentContext?): Node {
         return Assignment(visitIdentifier(ctx!!.identifier()),
@@ -88,8 +110,8 @@ class Visitor : FunLangBaseVisitor<Node>() {
                 VariableCall(visitIdentifier(ctx.identifier()))
             ctx.literal() is FunLangParser.LiteralContext ->
                 Literal(ctx.literal().text.toLong())
-            ctx.simpleExpression() is FunLangParser.SimpleExpressionContext ->
-                visitSimpleExpression(ctx.simpleExpression())
+            ctx.expression() is FunLangParser.ExpressionContext ->
+                visitExpression(ctx.expression())
             ctx.functionCall() is FunLangParser.FunctionCallContext -> {
                 val expressions = ctx.functionCall().arguments().expression().map {
                     visitExpression(it)
@@ -114,15 +136,13 @@ class Visitor : FunLangBaseVisitor<Node>() {
 
     override fun visitMultiplicativeExpression(ctx: FunLangParser.MultiplicativeExpressionContext?): Expression {
         return when {
-            ctx!!.simpleExpression() is FunLangParser.SimpleExpressionContext ->
-                visitSimpleExpression(ctx.simpleExpression())
-            ctx.multiplicativeExpression() is FunLangParser.SimpleExpressionContext -> {
+            ctx!!.multiplicativeExpression() is FunLangParser.MultiplicativeExpressionContext -> {
                 val l = visitMultiplicativeExpression(ctx.multiplicativeExpression())
                 val op = ctx.multiplicativeOp().text
-                val r = visitExpression(ctx.expression())
+                val r = visitSimpleExpression(ctx.simpleExpression())
                 genBinOp(l, op, r)
             }
-            else -> throw RuntimeException()
+            else -> visitSimpleExpression(ctx.simpleExpression())
         }
     }
 
@@ -134,9 +154,8 @@ class Visitor : FunLangBaseVisitor<Node>() {
                 val op = ctx.additiveOp().text
                 genBinOp(l, op, r)
             }
-            ctx.multiplicativeExpression() is FunLangParser.MultiplicativeExpressionContext ->
-                visitMultiplicativeExpression(ctx.multiplicativeExpression())
-            else -> throw RuntimeException()
+            else -> visitMultiplicativeExpression(ctx.multiplicativeExpression())
+
         }
     }
 
@@ -144,22 +163,4 @@ class Visitor : FunLangBaseVisitor<Node>() {
         val op1 = Operation.values().filter { it.str == op }.first()
         return BinaryOp(l, op1, r)
     }
-
-    /*
-    return when (binOp.operation) {
-            Operation.Eq -> toLong(lVal == rVal)
-            Operation.Neq -> toLong(rVal != rVal)
-            Operation.Or -> toLong((lVal != 0L) || (rVal != 0L))
-            Operation.And -> toLong((lVal != 0L) || (rVal != 0L))
-            Operation.Lt -> toLong(lVal < rVal)
-            Operation.Le -> toLong(lVal <= rVal)
-            Operation.Gt -> toLong(lVal > rVal)
-            Operation.Ge -> toLong(lVal >= rVal)
-            Operation.Plus -> lVal + rVal
-            Operation.Minus -> lVal - rVal
-            Operation.Multiply -> lVal * rVal
-            Operation.Divide -> lVal / rVal
-            Operation.Rem -> lVal % rVal
-        }
-     */
 }
