@@ -77,6 +77,10 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
                 val functionScope2 = Scope(functionScope)
                 functionScope2.put(func.name, func)
 
+                if (func.params.size != args.size) {
+                    throw RuntimeException("wrong number of params")
+                }
+
                 func.params.zip(args).forEach({ (name, value) ->
                     variableScope2.put(name, value)
                 })

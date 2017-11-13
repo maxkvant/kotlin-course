@@ -160,6 +160,12 @@ NonzeroDigit
     : [1-9]
     ;
 
+
+COMMENT
+    :   '//' ~[\r\n]*
+        -> skip
+    ;
+
 WS
     : (' ' | '\t' | '\r'| '\n') -> skip
     ;
