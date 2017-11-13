@@ -55,7 +55,7 @@ class TestSource {
             |   return bar(1)
             | }
             |
-            | println(foo(41)) 
+            | println(foo(41))
             |
             |
         """.trimMargin()), `is`("42\n"))
