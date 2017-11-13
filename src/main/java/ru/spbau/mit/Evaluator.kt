@@ -1,9 +1,11 @@
 package ru.spbau.mit
 
 import ru.spbau.mit.Ast.*
+import java.io.PrintStream
 
 class Evaluator(val functionScope: Scope<FunctionDef>,
-                val variableScope: Scope<Long>) {
+                val variableScope: Scope<Long>,
+                val printStream: PrintStream) {
     private var returnValue: Long? = null
 
     fun getRes(): Long {
@@ -23,7 +25,11 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
         return when (expr) {
             is Literal -> expr.num
             is BinaryOp -> eval(expr)
-            is VariableCall -> variableScope.get(expr.name)
+            is VariableCall -> try {
+                variableScope.get(expr.name)
+            } catch (e: Throwable) {
+                throw EvaluatorException("error on line ${expr.line}: ${e.message}")
+            }
             is FunctionCall -> eval(expr)
         }
     }
@@ -36,41 +42,50 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
             false -> 0L
         }
 
-        return when (binOp.operation) {
-            Operation.Eq -> toLong(lVal == rVal)
-            Operation.Neq -> toLong(rVal != rVal)
-            Operation.Or -> toLong((lVal != 0L) || (rVal != 0L))
-            Operation.And -> toLong((lVal != 0L) || (rVal != 0L))
-            Operation.Lt -> toLong(lVal < rVal)
-            Operation.Le -> toLong(lVal <= rVal)
-            Operation.Gt -> toLong(lVal > rVal)
-            Operation.Ge -> toLong(lVal >= rVal)
-            Operation.Plus -> lVal + rVal
-            Operation.Minus -> lVal - rVal
-            Operation.Multiply -> lVal * rVal
-            Operation.Divide -> lVal / rVal
-            Operation.Rem -> lVal % rVal
+        return try {
+            when (binOp.operation) {
+                Operation.Eq -> toLong(lVal == rVal)
+                Operation.Neq -> toLong(rVal != rVal)
+                Operation.Or -> toLong((lVal != 0L) || (rVal != 0L))
+                Operation.And -> toLong((lVal != 0L) || (rVal != 0L))
+                Operation.Lt -> toLong(lVal < rVal)
+                Operation.Le -> toLong(lVal <= rVal)
+                Operation.Gt -> toLong(lVal > rVal)
+                Operation.Ge -> toLong(lVal >= rVal)
+                Operation.Plus -> lVal + rVal
+                Operation.Minus -> lVal - rVal
+                Operation.Multiply -> lVal * rVal
+                Operation.Divide -> lVal / rVal
+                Operation.Rem -> lVal % rVal
+            }
+        } catch (e: Throwable) {
+            throw EvaluatorException("arithmetic error on line ${binOp.line}: ${e.message}")
         }
     }
 
     private fun eval(funCall: FunctionCall): Long {
-        val args: List<Long> = funCall.args.map(this::evalExpr)
-        val func = functionScope.get(funCall.name)
+        try {
+            val args: List<Long> = funCall.args.map(this::evalExpr)
+            val func = functionScope.get(funCall.name)
 
-        if (func == Ast.printLn) {
-            println(args.joinToString(" "))
-            return 0
-        } else {
-            val variableScope2 = Scope(variableScope)
-            val functionScope2 = Scope(functionScope)
-            functionScope2.put(func.name, func)
 
-            func.params.zip(args).forEach({ (name, value) ->
-                variableScope2.put(name, value)
-            })
-            val evaluator = Evaluator(functionScope2, variableScope2)
-            evaluator.evalStatement(func.block)
-            return evaluator.getRes()
+            if (func == Ast.printLn) {
+                printStream.println(args.joinToString(", "))
+                return 0
+            } else {
+                val variableScope2 = Scope(variableScope)
+                val functionScope2 = Scope(functionScope)
+                functionScope2.put(func.name, func)
+
+                func.params.zip(args).forEach({ (name, value) ->
+                    variableScope2.put(name, value)
+                })
+                val evaluator = Evaluator(functionScope2, variableScope2, printStream)
+                evaluator.evalStatement(func.block)
+                return evaluator.getRes()
+            }
+        } catch (e: Throwable) {
+            throw EvaluatorException("error on line ${funCall.line}: ${e.message}")
         }
     }
 
@@ -110,10 +125,12 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
     }
 }
 
-fun evaluate(block: Block) {
+class EvaluatorException(override val message: String) : RuntimeException()
+
+fun evaluate(block: Block, printStream: PrintStream) {
     val funScope = Scope<FunctionDef>(null)
     funScope.put(Ast.printLn.name, Ast.printLn)
-    val evaluator = Evaluator(funScope, Scope(null))
+    val evaluator = Evaluator(funScope, Scope(null), printStream)
     evaluator.evalStatement(block)
     evaluator.getRes()
 }

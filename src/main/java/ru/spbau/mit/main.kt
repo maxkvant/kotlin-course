@@ -11,9 +11,9 @@ fun evaluateStr(str: String) {
     val lexer = FunLangLexer(input)
     val tokens = CommonTokenStream(lexer)
     val parser = FunLangParser(tokens)
-    val visitor = Visitor()
+    val visitor = FunLangVisitor()
     val ast = visitor.visit(parser.block()) as Block
-    evaluate(ast)
+    evaluate(ast, System.out)
 }
 
 fun main(args: Array<String>) {
@@ -27,15 +27,13 @@ fun main(args: Array<String>) {
                    |   println(a, b)
                    | }
                    |
-                 """.trimMargin())
-
+                   """.trimMargin())
 
     evaluateStr("""| fun gcd(a, b) {
                    |     if (b) {
                    |         return gcd(b, a % b)
-                   |     } else {
-                   |         return a
                    |     }
+                   |     return a
                    | }
                    |
                    | println(gcd(2, 3))
@@ -45,4 +43,7 @@ fun main(args: Array<String>) {
                    """.trimMargin())
 
 
+    evaluateStr("""| fun f() { f() }
+                   | f()
+                   """.trimMargin())
 }
