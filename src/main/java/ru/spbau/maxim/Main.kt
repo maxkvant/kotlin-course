@@ -4,22 +4,24 @@ fun main(args: Array<String>) {
     val rows = listOf<String>("a", "b", "c", "d")
     val tex = (document {
         documentClass("beamer")
-        usepackage("babel", "russian" /* varargs */)
+        usepackage("babel", "russian" to null)
         frame(title = "frametitle", args = "arg1" to "arg2") {
             itemize {
-                item {
                     for (row in rows) {
                         item { +"$row text" }
                     }
-                }
             }
 
             mathMode {
-                +" a + b = 10 "
+                +"""|
+                    |
+                    | a + b = 1000
+                    |
+                    | a + b != 10 """
             }
 
             // begin{pyglist}[language=kotlin]...\end{pyglist}
-            customTag(name = "pyglist", args = "language" to "kotlin") {
+            customTag("pyglist", "language" to "kotlin", "language3" to "java") {
                 +"""
                |val a = 1
                |
@@ -30,11 +32,9 @@ fun main(args: Array<String>) {
             }
 
             enumerate {
-                item {
                     for (row in rows) {
                         item { +"$row text" }
                     }
-                }
             }
         }
     })

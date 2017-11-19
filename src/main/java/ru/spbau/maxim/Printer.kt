@@ -20,7 +20,7 @@ class Writer(val printWriter: PrintStream) {
         when (element) {
             is AbstractCommand -> printCommand(element)
             is TextElement -> println(element.text.trim())
-            is MathMode -> println("$$" + element.text.toString().trim() + "$$")
+            is MathMode -> println("$$" + (element.text.toString() + "$$").trim())
         }
     }
 
@@ -62,7 +62,7 @@ class Writer(val printWriter: PrintStream) {
     private fun argToString(arg: Arg): String {
         val (arg1, arg2) = arg
         return arg1 + when (arg2) {
-            arg2 as String -> "=" + arg2
+            is String -> "=" + arg2
             else -> ""
         }
     }

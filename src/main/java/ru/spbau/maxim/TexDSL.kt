@@ -1,5 +1,9 @@
 package ru.spbau.maxim
 
+@DslMarker
+annotation class TexElementMarker
+
+@TexElementMarker
 sealed class Element
 
 enum class CommandType { LIKE_TAG, BEGIN_END }
@@ -84,7 +88,7 @@ class DocumentClass(val documentClass: String, args: Args) : AbstractCommand(arg
     override fun children(): List<Element> = emptyList()
 }
 
-class UsePackage(val packageName: String) : AbstractCommand(emptyList(), "usepackage") {
+class UsePackage(args: Args, val packageName: String) : AbstractCommand(args, "usepackage") {
     override val commandType = CommandType.LIKE_TAG
 
     override fun children(): List<Element> = emptyList()
@@ -96,8 +100,8 @@ class Document(args: Args) : Command(args, "document") {
     internal val header = mutableListOf<AbstractCommand>()
         get
 
-    fun usepackage(vararg newPackages: String) {
-        newPackages.forEach { header.add(UsePackage(it)) }
+    fun usepackage(newPackage: String, vararg args: Arg) {
+        header.add(UsePackage(args.toList(), newPackage))
     }
 
     fun documentClass(documentClass: String, vararg args: Arg) {
