@@ -2,7 +2,7 @@ package ru.spbau.maxim
 
 import java.io.PrintStream
 
-class Writer(val printWriter: PrintStream) {
+class Writer(private val printWriter: PrintStream) {
     private var ident: Int = 0
 
     private fun prefix() = " ".repeat(ident * 2)
@@ -20,30 +20,23 @@ class Writer(val printWriter: PrintStream) {
         when (element) {
             is AbstractCommand -> printCommand(element)
             is TextElement -> println(element.text.trim())
-            is MathMode -> println("$$" + (element.text.toString() + "$$").trim())
+            is MathMode -> println("$$" + (element.text() + "$$").trim())
         }
     }
 
     private fun printCommand(command: AbstractCommand) {
-        if (command is Document) {
-            command.header.forEach(this::printCommand)
-        }
+        (command as? Document)?.header()?.forEach(this::printCommand)
         val additionalInfo = when (command) {
             is DocumentClass -> "{" + command.documentClass + "}"
             is UsePackage -> "{" + command.packageName + "}"
+            is Frame -> "{" + command.title + "}"
             else -> ""
         }
 
         fun printChildren(children: List<Element>) {
-            if (command is CustomTag) {
-                println("{")
-            }
             ident++
             children.forEach(this::printElement)
             ident--
-            if (command is CustomTag) {
-                println("}")
-            }
         }
 
         when (command.commandType) {
@@ -70,8 +63,7 @@ class Writer(val printWriter: PrintStream) {
     private fun argsToString(args: Args): String {
         return when (args.size) {
             0 -> ""
-            else -> args.map(this::argToString).joinToString(",", "[", "]")
+            else -> args.joinToString(",", "[", "]", transform = this::argToString)
         }
     }
 }
-

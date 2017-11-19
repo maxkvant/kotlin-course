@@ -1,7 +1,7 @@
 package ru.spbau.maxim
 
 fun main(args: Array<String>) {
-    val rows = listOf<String>("a", "b", "c", "d")
+    val rows = listOf("a", "b", "c", "d")
     val tex = (document {
         documentClass("beamer")
         usepackage("babel", "russian" to null)
@@ -35,6 +35,14 @@ fun main(args: Array<String>) {
                     for (row in rows) {
                         item { +"$row text" }
                     }
+            }
+
+            left {
+                right {
+                    center {
+
+                    }
+                }
             }
         }
     })
