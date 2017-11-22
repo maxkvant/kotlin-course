@@ -10,14 +10,14 @@ class TestSource {
         val w = 10
         val h = 8
         val dancers = listOf(
-                Dancer(1, 0, 10, 0),
-                Dancer(4, 0, 13, 1),
-                Dancer(7, 0, 1, 2),
-                Dancer(8, 0, 2, 3),
-                Dancer(0, 2, 0, 4),
-                Dancer(0, 5, 14, 5),
-                Dancer(0, 6, 0, 6),
-                Dancer(0, 6, 1, 7)
+                Dancer(Point(1, 0, 0), 10),
+                Dancer(Point(4, 0, 1), 13),
+                Dancer(Point(7, 0, 2), 1),
+                Dancer(Point(8, 0, 3), 2),
+                Dancer(Point(0, 2, 4), 0),
+                Dancer(Point(0, 5, 5), 14),
+                Dancer(Point(0, 6, 6), 0),
+                Dancer(Point(0, 6, 7), 1)
         )
 
         assertThat(solve(w, h, dancers), `is`(listOf(
@@ -37,9 +37,9 @@ class TestSource {
         val w = 2
         val h = 3
         val dancers = listOf(
-                Dancer(1, 0, 2, 0),
-                Dancer(0, 1, 1, 1),
-                Dancer(1, 0, 5, 2)
+                Dancer(Point(1, 0, 0), 2),
+                Dancer(Point(0, 1, 1), 1),
+                Dancer(Point(1, 0, 2), 5)
         )
 
         assertThat(solve(w, h, dancers), `is`(listOf(
