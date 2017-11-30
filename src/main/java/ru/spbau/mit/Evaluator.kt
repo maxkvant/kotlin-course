@@ -3,9 +3,10 @@ package ru.spbau.mit
 import ru.spbau.mit.Ast.*
 import java.io.PrintStream
 
-class Evaluator(val functionScope: Scope<FunctionDef>,
-                val variableScope: Scope<Long>,
-                val printStream: PrintStream
+class Evaluator(
+    val functionScope: Scope<FunctionDef>,
+    val variableScope: Scope<Long>,
+    val printStream: PrintStream
 ) {
     private var returnValue: Long? = null
 

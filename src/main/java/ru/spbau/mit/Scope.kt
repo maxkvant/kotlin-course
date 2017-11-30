@@ -2,7 +2,7 @@ package ru.spbau.mit
 
 import ru.spbau.mit.Ast.Identifier
 
-open class Scope<T>(private val parent: Scope<T>?) {
+class Scope<T : Any>(private val parent: Scope<T>?) {
     private val valuesMap: MutableMap<Identifier, T> = mutableMapOf<Identifier, T>()
 
     protected fun getScope(identifier: Identifier): Scope<T>? {
@@ -14,11 +14,11 @@ open class Scope<T>(private val parent: Scope<T>?) {
 
     fun get(identifier: Identifier): T {
         val scope = getScope(identifier)
-        return scope?.valuesMap?.get(identifier) ?: throw RuntimeException("not found: " + identifier.toString())
+        return checkNotNull(scope?.valuesMap?.get(identifier)) { "not found: " + identifier.toString() }
     }
 
     fun set(identifier: Identifier, value: T) {
-        val scope: Scope<T> = getScope(identifier) ?: throw RuntimeException("not found: " + identifier.toString())
+        val scope: Scope<T> = checkNotNull(getScope(identifier)) { "not found: " + identifier.toString() }
         scope.valuesMap[identifier] = value
     }
 

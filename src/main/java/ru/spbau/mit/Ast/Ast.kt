@@ -8,10 +8,11 @@ sealed class Statement : Node() {
 
 sealed class Expression : Statement()
 
-data class FunctionDef(val name: Identifier,
-                       val params: List<Identifier>,
-                       val block: Block,
-                       override val line: Int
+data class FunctionDef(
+    val name: Identifier,
+    val params: List<Identifier>,
+    val block: Block,
+    override val line: Int
 ) : Statement() {
     companion object {
         val printLn: FunctionDef =
@@ -22,54 +23,64 @@ data class FunctionDef(val name: Identifier,
     }
 }
 
-data class VariableDef(val name: Identifier,
-                       val value: Expression?,
-                       override val line: Int
+data class VariableDef(
+    val name: Identifier,
+    val value: Expression?,
+    override val line: Int
 ) : Statement()
 
-data class While(val loopExpr: Expression,
-                 val block: Block,
-                 override val line: Int
+data class While(
+    val loopExpr: Expression,
+    val block: Block,
+    override val line: Int
 ) : Statement()
 
-data class If(val boolExpr: Expression,
-              val blockTrue: Block,
-              val blockFalse: Block,
-              override val line: Int
+data class If(
+    val boolExpr: Expression,
+    val blockTrue: Block,
+    val blockFalse: Block,
+    override val line: Int
 ) : Statement()
 
-data class Block(val statements: List<Statement>,
-                 override val line: Int
+data class Block(
+    val statements: List<Statement>,
+    override val line: Int
 ) : Statement()
 
-data class Return(val expr: Expression,
-                  override val line: Int
+data class Return(
+    val expr: Expression,
+    override val line: Int
 ) : Statement()
 
-data class Assignment(val identifier: Identifier,
-                      val expr: Expression,
-                      override val line: Int
+data class Assignment(
+    val identifier: Identifier,
+    val expr: Expression,
+    override val line: Int
 ) : Statement()
 
-data class BinaryOp(val l: Expression,
-                    val operation: Operation,
-                    val r: Expression,
-                    override val line: Int
+data class BinaryOp(
+    val l: Expression,
+    val operation: Operation,
+    val r: Expression,
+    override val line: Int
 ) : Expression()
 
-data class FunctionCall(val name: Identifier,
-                        val args: List<Expression>,
-                        override val line: Int
+data class FunctionCall(
+    val name: Identifier,
+    val args: List<Expression>,
+    override val line: Int
 ) : Expression()
 
-data class VariableCall(val name: Identifier,
-                        override val line: Int
+data class VariableCall(
+    val name: Identifier,
+    override val line: Int
 ) : Expression()
 
 data class Identifier(val str: String) : Node()
 
-data class Literal(val num: Long,
-                   override val line: Int
+data class Literal(
+    val num: Long,
+    override val line: Int
 ) : Expression()
 
 
