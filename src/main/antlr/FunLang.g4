@@ -12,8 +12,8 @@ statement
     :   function
     |   variable
     |   expression
-    |   whilee
-    |   iff
+    |   whileStatement
+    |   ifStatement
     |   assignment
     |   returnn
     ;
@@ -35,11 +35,11 @@ variable
     : 'var' identifier ( '=' expression)?
     ;
 
-iff
+ifStatement
     : 'if' '(' expression ')' blockWithBraces ( 'else' blockWithBraces )?
     ;
 
-whilee
+whileStatement
     : 'while' '(' expression ')' blockWithBraces
     ;
 

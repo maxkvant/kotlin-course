@@ -5,14 +5,15 @@ import java.io.PrintStream
 
 class Evaluator(val functionScope: Scope<FunctionDef>,
                 val variableScope: Scope<Long>,
-                val printStream: PrintStream) {
+                val printStream: PrintStream
+) {
     private var returnValue: Long? = null
 
     fun getRes(): Long {
         return returnValue ?: 0L
     }
 
-    private fun tryRun(f: () -> Unit): Boolean {
+    private fun runIfNotReturned(f: () -> Unit): Boolean {
         return when (returnValue) {
             null -> {
                 f(); true
@@ -27,8 +28,8 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
             is BinaryOp -> eval(expr)
             is VariableCall -> try {
                 variableScope.get(expr.name)
-            } catch (e: Throwable) {
-                throw EvaluatorException("error on line ${expr.line}: ${e.message}")
+            } catch (e: Exception) {
+                handleException(expr.line, e)
             }
             is FunctionCall -> eval(expr)
         }
@@ -42,8 +43,7 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
             false -> 0L
         }
 
-        return try {
-            when (binOp.operation) {
+        return when (binOp.operation) {
                 Operation.Eq -> toLong(lVal == rVal)
                 Operation.Neq -> toLong(rVal != rVal)
                 Operation.Or -> toLong((lVal != 0L) || (rVal != 0L))
@@ -55,12 +55,15 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
                 Operation.Plus -> lVal + rVal
                 Operation.Minus -> lVal - rVal
                 Operation.Multiply -> lVal * rVal
-                Operation.Divide -> lVal / rVal
-                Operation.Rem -> lVal % rVal
+                Operation.Divide -> {
+                    check (rVal != 0L) { "error error on line ${binOp.line}: / by zero" }
+                    lVal / rVal
+                }
+                Operation.Rem -> {
+                    check (rVal != 0L) { "error on line ${binOp.line}: % by zero" }
+                    lVal % rVal
+                }
             }
-        } catch (e: Throwable) {
-            throw EvaluatorException("arithmetic error on line ${binOp.line}: ${e.message}")
-        }
     }
 
     private fun eval(funCall: FunctionCall): Long {
@@ -69,17 +72,14 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
             val func = functionScope.get(funCall.name)
 
 
-            if (func == Ast.printLn) {
+            if (func == FunctionDef.printLn) {
                 printStream.println(args.joinToString(", "))
                 return 0
             } else {
                 val variableScope2 = Scope(variableScope)
-                val functionScope2 = Scope(functionScope)
-                functionScope2.put(func.name, func)
+                val functionScope2 = Scope(functionScope).apply { put(func.name, func) }
 
-                if (func.params.size != args.size) {
-                    throw RuntimeException("wrong number of params")
-                }
+                check (func.params.size == args.size) { "error on line ${funCall.line} wrong number of params" }
 
                 func.params.zip(args).forEach({ (name, value) ->
                     variableScope2.put(name, value)
@@ -88,13 +88,13 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
                 evaluator.evalStatement(func.block)
                 return evaluator.getRes()
             }
-        } catch (e: Throwable) {
-            throw EvaluatorException("error on line ${funCall.line}: ${e.message}")
+        } catch (e: Exception) {
+            handleException(funCall.line, e)
         }
     }
 
     fun evalStatement(statement: Statement) {
-        tryRun {
+        runIfNotReturned {
             when (statement) {
                 is Block -> statement.statements.forEach(this::evalStatement)
                 is Return -> returnValue = evalExpr(statement.expr)
@@ -111,7 +111,7 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
     }
 
     private fun eval(whileStatement: While) {
-        while (isTrue(whileStatement.loopExpr) && (tryRun { evalStatement(whileStatement.block) }));
+        while (isTrue(whileStatement.loopExpr) && (runIfNotReturned { evalStatement(whileStatement.block) }));
     }
 
     private fun isTrue(expr: Expression): Boolean {
@@ -119,7 +119,7 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
     }
 
     private fun eval(ifStatement: If) {
-        tryRun {
+        runIfNotReturned {
             if (isTrue(ifStatement.boolExpr)) {
                 evalStatement(ifStatement.blockTrue)
             } else {
@@ -127,13 +127,17 @@ class Evaluator(val functionScope: Scope<FunctionDef>,
             }
         }
     }
+
+    private fun handleException(line: Int, e: Exception): Nothing {
+        throw EvaluatorException("error on line ${line}: ${e.message}", e)
+    }
 }
 
-class EvaluatorException(override val message: String) : RuntimeException()
+class EvaluatorException(override val message: String, override val cause: Throwable) : RuntimeException()
 
 fun evaluate(block: Block, printStream: PrintStream) {
     val funScope = Scope<FunctionDef>(null)
-    funScope.put(Ast.printLn.name, Ast.printLn)
+    funScope.put(FunctionDef.printLn.name, FunctionDef.printLn)
     val evaluator = Evaluator(funScope, Scope(null), printStream)
     evaluator.evalStatement(block)
     evaluator.getRes()

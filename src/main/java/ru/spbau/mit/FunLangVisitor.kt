@@ -5,75 +5,75 @@ import ru.spbau.mit.parser.FunLangBaseVisitor
 import ru.spbau.mit.parser.FunLangParser
 
 class FunLangVisitor : FunLangBaseVisitor<Node>() {
-    override fun visitBlock(ctx: FunLangParser.BlockContext?): Block {
-        return Block(ctx!!.statement()
+    override fun visitBlock(ctx: FunLangParser.BlockContext): Block {
+        return Block(ctx.statement()
                 .map(this::visitStatement),
                 ctx.start.line)
     }
 
-    override fun visitStatement(ctx: FunLangParser.StatementContext?): Statement {
-        val line = ctx!!.start.line
+    override fun visitStatement(ctx: FunLangParser.StatementContext): Statement {
+        val line = ctx.start.line
         return when {
-            ctx.assignment() is FunLangParser.AssignmentContext ->
+            ctx.assignment() != null ->
                 Assignment(visitIdentifier(ctx.assignment().identifier()),
                         visitExpression(ctx.assignment().expression()),
                         line)
-            ctx.expression() is FunLangParser.ExpressionContext ->
+            ctx.expression() != null ->
                 visitExpression(ctx.expression())
-            ctx.function() is FunLangParser.FunctionContext ->
+            ctx.function() != null ->
                 visitFunction(ctx.function())
-            ctx.variable() is FunLangParser.VariableContext ->
+            ctx.variable() != null ->
                 visitVariable(ctx.variable())
-            ctx.iff() is FunLangParser.IffContext ->
-                visitIff(ctx.iff())
-            ctx.whilee() is FunLangParser.WhileeContext ->
-                visitWhilee(ctx.whilee())
-            ctx.returnn() is FunLangParser.ReturnnContext ->
+            ctx.ifStatement() != null ->
+                visitIfStatement(ctx.ifStatement())
+            ctx.whileStatement() != null ->
+                visitWhileStatement(ctx.whileStatement())
+            ctx.returnn() != null ->
                 visitReturnn(ctx.returnn())
             else -> throw RuntimeException()
         }
     }
 
-    override fun visitWhilee(ctx: FunLangParser.WhileeContext?): While {
-        return While(visitExpression(ctx!!.expression()),
+    override fun visitWhileStatement(ctx: FunLangParser.WhileStatementContext): While {
+        return While(visitExpression(ctx.expression()),
                 visitBlockWithBraces(ctx.blockWithBraces()),
                 ctx.start.line)
     }
 
-    override fun visitReturnn(ctx: FunLangParser.ReturnnContext?): Return {
-        return Return(visitExpression(ctx!!.expression()), ctx.start.line)
+    override fun visitReturnn(ctx: FunLangParser.ReturnnContext): Return {
+        return Return(visitExpression(ctx.expression()), ctx.start.line)
     }
 
 
-    override fun visitVariable(ctx: FunLangParser.VariableContext?): VariableDef {
-        return VariableDef(visitIdentifier(ctx!!.identifier()),
+    override fun visitVariable(ctx: FunLangParser.VariableContext): VariableDef {
+        return VariableDef(visitIdentifier(ctx.identifier()),
                 visitExpression(ctx.expression()),
                 ctx.start.line)
     }
 
 
-    override fun visitFunction(ctx: FunLangParser.FunctionContext?): FunctionDef {
-        val params = ctx!!.parameterNames().identifier().map { Identifier(it.text) }
+    override fun visitFunction(ctx: FunLangParser.FunctionContext): FunctionDef {
+        val params = ctx.parameterNames().identifier().map { Identifier(it.text) }
         val name = visitIdentifier(ctx.identifier())
         val block = visitBlockWithBraces(ctx.blockWithBraces())
         return FunctionDef(name, params, block, ctx.start.line)
     }
 
-    override fun visitIdentifier(ctx: FunLangParser.IdentifierContext?): Identifier {
-        return Identifier(ctx!!.text)
+    override fun visitIdentifier(ctx: FunLangParser.IdentifierContext): Identifier {
+        return Identifier(ctx.text)
     }
 
-    override fun visitBlockWithBraces(ctx: FunLangParser.BlockWithBracesContext?): Block {
-        return visitBlock(ctx!!.block())
+    override fun visitBlockWithBraces(ctx: FunLangParser.BlockWithBracesContext): Block {
+        return visitBlock(ctx.block())
     }
 
-    override fun visitExpression(ctx: FunLangParser.ExpressionContext?): Expression {
-        return visitLogicalOrExpression(ctx!!.arifmeticExpression().logicalOrExpression())
+    override fun visitExpression(ctx: FunLangParser.ExpressionContext): Expression {
+        return visitLogicalOrExpression(ctx.arifmeticExpression().logicalOrExpression())
     }
 
-    override fun visitLogicalOrExpression(ctx: FunLangParser.LogicalOrExpressionContext?): Expression {
+    override fun visitLogicalOrExpression(ctx: FunLangParser.LogicalOrExpressionContext): Expression {
         return when {
-            ctx!!.logicalOrExpression() is FunLangParser.LogicalOrExpressionContext -> {
+            ctx.logicalOrExpression() != null -> {
                 val l = visitLogicalOrExpression(ctx.logicalOrExpression())
                 val r = visitLogicalAndExpression(ctx.logicalAndExpression())
                 genBinOp(l, "||", r, ctx.start.line)
@@ -82,9 +82,9 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         }
     }
 
-    override fun visitLogicalAndExpression(ctx: FunLangParser.LogicalAndExpressionContext?): Expression {
+    override fun visitLogicalAndExpression(ctx: FunLangParser.LogicalAndExpressionContext): Expression {
         return when {
-            ctx!!.logicalAndExpression() is FunLangParser.LogicalAndExpressionContext -> {
+            ctx.logicalAndExpression() != null -> {
                 val l = visitLogicalAndExpression(ctx.logicalAndExpression())
                 val r = visitRelationalExpression(ctx.relationalExpression())
                 genBinOp(l, "&&", r, ctx.start.line)
@@ -93,8 +93,8 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         }
     }
 
-    override fun visitRelationalExpression(ctx: FunLangParser.RelationalExpressionContext?): Expression {
-        val expressions = ctx!!.additiveExpression().map(this::visitAdditiveExpression)
+    override fun visitRelationalExpression(ctx: FunLangParser.RelationalExpressionContext): Expression {
+        val expressions = ctx.additiveExpression().map(this::visitAdditiveExpression)
         return when (expressions.size) {
             1 -> expressions[0]
             2 -> genBinOp(expressions[0], ctx.relationalOp().text, expressions[1], ctx.start.line)
@@ -103,22 +103,22 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
     }
 
 
-    override fun visitAssignment(ctx: FunLangParser.AssignmentContext?): Node {
-        return Assignment(visitIdentifier(ctx!!.identifier()),
+    override fun visitAssignment(ctx: FunLangParser.AssignmentContext): Node {
+        return Assignment(visitIdentifier(ctx.identifier()),
                 visitExpression(ctx.expression()),
                 ctx.start.line)
     }
 
-    override fun visitSimpleExpression(ctx: FunLangParser.SimpleExpressionContext?): Expression {
-        val line = ctx!!.start.line
+    override fun visitSimpleExpression(ctx: FunLangParser.SimpleExpressionContext): Expression {
+        val line = ctx.start.line
         return when {
-            ctx.identifier() is FunLangParser.IdentifierContext ->
+            ctx.identifier() != null ->
                 VariableCall(visitIdentifier(ctx.identifier()), line)
-            ctx.literal() is FunLangParser.LiteralContext ->
+            ctx.literal() != null ->
                 Literal(ctx.literal().text.toLong(), line)
-            ctx.expression() is FunLangParser.ExpressionContext ->
+            ctx.expression() != null ->
                 visitExpression(ctx.expression())
-            ctx.functionCall() is FunLangParser.FunctionCallContext -> {
+            ctx.functionCall() != null -> {
                 val expressions = ctx.functionCall().arguments().expression().map {
                     visitExpression(it)
                 }
@@ -128,8 +128,8 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         }
     }
 
-    override fun visitIff(ctx: FunLangParser.IffContext?): If {
-        val blocks: List<Block> = ctx!!.blockWithBraces()
+    override fun visitIfStatement(ctx: FunLangParser.IfStatementContext): If {
+        val blocks: List<Block> = ctx.blockWithBraces()
                 .map(this::visitBlockWithBraces)
 
         val expression = visitExpression(ctx.expression())
@@ -142,9 +142,9 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         }
     }
 
-    override fun visitMultiplicativeExpression(ctx: FunLangParser.MultiplicativeExpressionContext?): Expression {
+    override fun visitMultiplicativeExpression(ctx: FunLangParser.MultiplicativeExpressionContext): Expression {
         return when {
-            ctx!!.multiplicativeExpression() is FunLangParser.MultiplicativeExpressionContext -> {
+            ctx.multiplicativeExpression() != null -> {
                 val l = visitMultiplicativeExpression(ctx.multiplicativeExpression())
                 val op = ctx.multiplicativeOp().text
                 val r = visitSimpleExpression(ctx.simpleExpression())
@@ -154,21 +154,20 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         }
     }
 
-    override fun visitAdditiveExpression(ctx: FunLangParser.AdditiveExpressionContext?): Expression {
+    override fun visitAdditiveExpression(ctx: FunLangParser.AdditiveExpressionContext): Expression {
         return when {
-            ctx!!.additiveExpression() is FunLangParser.AdditiveExpressionContext -> {
+            ctx.additiveExpression() != null -> {
                 val l = visitAdditiveExpression(ctx.additiveExpression())
                 val r = visitMultiplicativeExpression(ctx.multiplicativeExpression())
                 val op = ctx.additiveOp().text
                 genBinOp(l, op, r, ctx.start.line)
             }
             else -> visitMultiplicativeExpression(ctx.multiplicativeExpression())
-
         }
     }
 
     private fun genBinOp(l: Expression, op: String, r: Expression, line: Int): BinaryOp {
-        val op1 = Operation.values().filter { it.str == op }.first()
+        val op1 = Operation.values().first { it.str == op }
         return BinaryOp(l, op1, r, line)
     }
 }
