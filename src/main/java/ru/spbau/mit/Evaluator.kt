@@ -4,9 +4,9 @@ import ru.spbau.mit.Ast.*
 import java.io.PrintStream
 
 class Evaluator(
-    val functionScope: Scope<FunctionDef>,
-    val variableScope: Scope<Long>,
-    val printStream: PrintStream
+    private val functionScope: Scope<FunctionDef>,
+    private val variableScope: Scope<Long>,
+    private val printStream: PrintStream
 ) {
     private var returnValue: Long? = null
 
@@ -123,14 +123,14 @@ class Evaluator(
         runIfNotReturned {
             if (isTrue(ifStatement.boolExpr)) {
                 evalStatement(ifStatement.blockTrue)
-            } else {
+            } else if (ifStatement.blockFalse != null) {
                 evalStatement(ifStatement.blockFalse)
             }
         }
     }
 
     private fun handleException(line: Int, e: Exception): Nothing {
-        throw EvaluatorException("error on line ${line}: ${e.message}", e)
+        throw EvaluatorException("error on line $line: ${e.message}", e)
     }
 }
 

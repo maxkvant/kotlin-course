@@ -3,9 +3,9 @@ package ru.spbau.mit
 import ru.spbau.mit.Ast.Identifier
 
 class Scope<T : Any>(private val parent: Scope<T>?) {
-    private val valuesMap: MutableMap<Identifier, T> = mutableMapOf<Identifier, T>()
+    private val valuesMap: MutableMap<Identifier, T> = mutableMapOf()
 
-    protected fun getScope(identifier: Identifier): Scope<T>? {
+    private fun getScope(identifier: Identifier): Scope<T>? {
         if (valuesMap.containsKey(identifier)) {
             return this
         }

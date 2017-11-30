@@ -15,7 +15,7 @@ statement
     |   whileStatement
     |   ifStatement
     |   assignment
-    |   returnn
+    |   returnStatement
     ;
 
 blockWithBraces
@@ -47,7 +47,7 @@ assignment
     : identifier '=' expression
     ;
 
-returnn
+returnStatement
     : 'return' expression
     ;
 

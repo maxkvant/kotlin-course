@@ -17,8 +17,8 @@ data class FunctionDef(
     companion object {
         val printLn: FunctionDef =
                 FunctionDef(Identifier("println"),
-                            emptyList<Identifier>(),
-                            Block(emptyList<Statement>(), -1),
+                            emptyList(),
+                            Block(emptyList(), -1),
                             -1)
     }
 }
@@ -36,10 +36,10 @@ data class While(
 ) : Statement()
 
 data class If(
-    val boolExpr: Expression,
-    val blockTrue: Block,
-    val blockFalse: Block,
-    override val line: Int
+        val boolExpr: Expression,
+        val blockTrue: Block,
+        val blockFalse: Block?,
+        override val line: Int
 ) : Statement()
 
 data class Block(

@@ -28,8 +28,8 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
                 visitIfStatement(ctx.ifStatement())
             ctx.whileStatement() != null ->
                 visitWhileStatement(ctx.whileStatement())
-            ctx.returnn() != null ->
-                visitReturnn(ctx.returnn())
+            ctx.returnStatement() != null ->
+                visitReturnStatement(ctx.returnStatement())
             else -> throw RuntimeException()
         }
     }
@@ -40,7 +40,7 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
                 ctx.start.line)
     }
 
-    override fun visitReturnn(ctx: FunLangParser.ReturnnContext): Return {
+    override fun visitReturnStatement(ctx: FunLangParser.ReturnStatementContext): Return {
         return Return(visitExpression(ctx.expression()), ctx.start.line)
     }
 
@@ -64,7 +64,8 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
     }
 
     override fun visitBlockWithBraces(ctx: FunLangParser.BlockWithBracesContext): Block {
-        return visitBlock(ctx.block())
+        return Block(ctx.block().statement().map(this::visitStatement),
+                     ctx.start.line)
     }
 
     override fun visitExpression(ctx: FunLangParser.ExpressionContext): Expression {
@@ -136,7 +137,7 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         val line = ctx.start.line
 
         return when (blocks.size) {
-            1 -> If(expression, blocks[0], Block(emptyList<Statement>(), line), line)
+            1 -> If(expression, blocks[0], null, line)
             2 -> If(expression, blocks[0], blocks[1], line)
             else -> throw RuntimeException()
         }
