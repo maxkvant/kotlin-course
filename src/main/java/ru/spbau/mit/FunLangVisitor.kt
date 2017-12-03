@@ -103,13 +103,6 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
         }
     }
 
-
-    override fun visitAssignment(ctx: FunLangParser.AssignmentContext): Node {
-        return Assignment(visitIdentifier(ctx.identifier()),
-                visitExpression(ctx.expression()),
-                ctx.start.line)
-    }
-
     override fun visitSimpleExpression(ctx: FunLangParser.SimpleExpressionContext): Expression {
         val line = ctx.start.line
         return when {

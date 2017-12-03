@@ -2,20 +2,36 @@ package ru.spbau.mit
 
 import ru.spbau.mit.Ast.*
 import java.io.PrintStream
+import kotlin.coroutines.experimental.RestrictsSuspension
 
+@RestrictsSuspension
 class Evaluator(
-    private val functionScope: Scope<FunctionDef>,
-    private val variableScope: Scope<Long>,
+    functionScope1: Scope<FunctionDef>,
+    variableScope1: Scope<Long>,
     private val printStream: PrintStream
 ) {
-    private var returnValue: Long? = null
+    private class State (
+        val functionScope: Scope<FunctionDef>,
+        val variableScope: Scope<Long>
+    ) {
+        var returnValue: Long? = null
+            get
 
-    fun getRes(): Long {
-        return returnValue ?: 0L
+        fun enterFunc(func: FunctionDef): State {
+            val functionScope2 = Scope(functionScope).apply { put(func.name, func) }
+            val variableScope2 = Scope(variableScope)
+            return State(functionScope2, variableScope2)
+        }
+
+        fun getRes(): Long {
+            return returnValue ?: 0L
+        }
     }
 
+    private var state: State = State(functionScope1, variableScope1)
+
     private fun runIfNotReturned(f: () -> Unit): Boolean {
-        return when (returnValue) {
+        return when (state.returnValue) {
             null -> {
                 f(); true
             }
@@ -28,7 +44,7 @@ class Evaluator(
             is Literal -> expr.num
             is BinaryOp -> eval(expr)
             is VariableCall -> try {
-                variableScope.get(expr.name)
+                state.variableScope.get(expr.name)
             } catch (e: Exception) {
                 handleException(expr.line, e)
             }
@@ -70,24 +86,30 @@ class Evaluator(
     private fun eval(funCall: FunctionCall): Long {
         try {
             val args: List<Long> = funCall.args.map(this::evalExpr)
-            val func = functionScope.get(funCall.name)
+            val func = state.functionScope.get(funCall.name)
 
 
             if (func == FunctionDef.printLn) {
                 printStream.println(args.joinToString(", "))
                 return 0
             } else {
-                val variableScope2 = Scope(variableScope)
-                val functionScope2 = Scope(functionScope).apply { put(func.name, func) }
+                val oldState = state
 
-                check (func.params.size == args.size) { "error on line ${funCall.line} wrong number of params" }
+                try {
+                    check(func.params.size == args.size) { "error on line ${funCall.line} wrong number of params" }
 
-                func.params.zip(args).forEach({ (name, value) ->
-                    variableScope2.put(name, value)
-                })
-                val evaluator = Evaluator(functionScope2, variableScope2, printStream)
-                evaluator.evalStatement(func.block)
-                return evaluator.getRes()
+                    state = state.enterFunc(func)
+
+                    func.params.zip(args).forEach({ (name, value) ->
+                        state.variableScope.put(name, value)
+                    })
+
+                    evalStatement(func.block)
+                } finally {
+                    val res = state.getRes()
+                    state = oldState
+                    return res
+                }
             }
         } catch (e: Exception) {
             handleException(funCall.line, e)
@@ -98,12 +120,12 @@ class Evaluator(
         runIfNotReturned {
             when (statement) {
                 is Block -> statement.statements.forEach(this::evalStatement)
-                is Return -> returnValue = evalExpr(statement.expr)
+                is Return -> state.returnValue = evalExpr(statement.expr)
                 is VariableDef -> {
-                    variableScope.put(statement.name, statement.value?.let { evalExpr(it) } ?: 0L)
+                    state.variableScope.put(statement.name, statement.value?.let { evalExpr(it) } ?: 0L)
                 }
-                is FunctionDef -> functionScope.put(statement.name, statement)
-                is Assignment -> variableScope.set(statement.identifier, evalExpr(statement.expr))
+                is FunctionDef -> state.functionScope.put(statement.name, statement)
+                is Assignment -> state.variableScope.set(statement.identifier, evalExpr(statement.expr))
                 is If -> eval(statement)
                 is While -> eval(statement)
                 is Expression -> evalExpr(statement)
@@ -141,5 +163,4 @@ fun evaluate(block: Block, printStream: PrintStream) {
     funScope.put(FunctionDef.printLn.name, FunctionDef.printLn)
     val evaluator = Evaluator(funScope, Scope(null), printStream)
     evaluator.evalStatement(block)
-    evaluator.getRes()
 }
