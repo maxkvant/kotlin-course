@@ -4,14 +4,13 @@ import org.antlr.v4.runtime.CharStreams
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.core.Is.`is`
 import org.junit.Test
-import ru.spbau.mit.Ast.*
+import ru.spbau.mit.ast.*
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 
+fun astFromString(str: String): Block = genAst(CharStreams.fromString(str + "\n"))
 
-class TestSource {
-    private fun astFromString(str: String): Block = genAst(CharStreams.fromString(str + "\n"))
-
+class TestsInterpretation {
     private fun executeCode(str: String): String {
         val ast = astFromString(str)
         val baos = ByteArrayOutputStream()
@@ -177,5 +176,11 @@ class TestSource {
                          Operation.Divide,
                          Literal(2, 1), 1)
         ))
+    }
+
+    @Test
+    fun evalExprTest() {
+        assertThat(evaluateExpr(BinaryOp(Literal(2, 1), Operation.Plus, Literal(3, 1), 1)),
+                `is`<Long>(5))
     }
 }

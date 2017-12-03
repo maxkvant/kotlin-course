@@ -3,9 +3,12 @@ package ru.spbau.mit
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
-import ru.spbau.mit.Ast.Block
+import ru.spbau.mit.ast.Block
+import ru.spbau.mit.ast.Expression
 import ru.spbau.mit.parser.FunLangLexer
 import ru.spbau.mit.parser.FunLangParser
+import ru.spbau.mit.repl.Executor
+import ru.spbau.mit.repl.toReplCommand
 
 fun genAst(charStream: CharStream): Block {
     val lexer = FunLangLexer(charStream)
@@ -16,13 +19,22 @@ fun genAst(charStream: CharStream): Block {
     return ast
 }
 
-fun main(args: Array<String>) {
-    if (args.size != 1) {
-        print("Should be 1 argument: FileName")
-        return
-    }
+fun String.toExpr(): Expression {
+    val lexer = FunLangLexer(CharStreams.fromString(this))
+    val tokens = CommonTokenStream(lexer)
+    val parser = FunLangParser(tokens)
+    val visitor = FunLangVisitor()
+    return visitor.visit(parser.expression()) as Expression
+}
 
-    val ast = genAst(CharStreams.fromFileName(args[0]))
-    CharStreams.fromString("str")
-    evaluate(ast, System.out)
+fun main(args: Array<String>) {
+    val executor = Executor(System.out)
+    while (true) {
+        try {
+            val command = readLine()!!.toReplCommand()
+            executor.onCommand(command)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }

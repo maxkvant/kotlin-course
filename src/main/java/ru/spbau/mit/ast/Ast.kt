@@ -1,4 +1,4 @@
-package ru.spbau.mit.Ast
+package ru.spbau.mit.ast
 
 sealed class Node
 

@@ -1,6 +1,6 @@
 package ru.spbau.mit
 
-import ru.spbau.mit.Ast.*
+import ru.spbau.mit.ast.*
 import ru.spbau.mit.parser.FunLangBaseVisitor
 import ru.spbau.mit.parser.FunLangParser
 
@@ -47,7 +47,7 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
 
     override fun visitVariable(ctx: FunLangParser.VariableContext): VariableDef {
         return VariableDef(visitIdentifier(ctx.identifier()),
-                visitExpression(ctx.expression()),
+                ctx.expression()?.let { visitExpression(it) },
                 ctx.start.line)
     }
 
@@ -101,13 +101,6 @@ class FunLangVisitor : FunLangBaseVisitor<Node>() {
             2 -> genBinOp(expressions[0], ctx.relationalOp().text, expressions[1], ctx.start.line)
             else -> throw RuntimeException()
         }
-    }
-
-
-    override fun visitAssignment(ctx: FunLangParser.AssignmentContext): Node {
-        return Assignment(visitIdentifier(ctx.identifier()),
-                visitExpression(ctx.expression()),
-                ctx.start.line)
     }
 
     override fun visitSimpleExpression(ctx: FunLangParser.SimpleExpressionContext): Expression {
