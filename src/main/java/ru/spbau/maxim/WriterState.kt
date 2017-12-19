@@ -3,7 +3,7 @@ package ru.spbau.maxim
 import java.io.PrintStream
 
 internal class WriterState(private val printWriter: PrintStream) {
-    internal var ident: Int = 0
+    private var ident: Int = 0
 
     private fun prefix() = " ".repeat(ident * 2)
 
@@ -43,7 +43,7 @@ internal class WriterState(private val printWriter: PrintStream) {
         }
     }
 
-    internal fun argsToString(args: Args): String {
+    private fun argsToString(args: Args): String {
         return when (args.size) {
             0 -> ""
             else -> args.joinToString(",", "[", "]", transform = this::argToString)

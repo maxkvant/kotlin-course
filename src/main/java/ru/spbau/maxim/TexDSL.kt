@@ -71,7 +71,7 @@ class TextElement(val text: String) : Element() {
 
 class Frame(val title: String, args: Args) : Command(args, "frame") {
     override val commandType: CommandType = CommandType.BEGIN_END
-    override fun additionalInfo(): String = "{" + title + "}"
+    override fun additionalInfo(): String = "{$title}"
 }
 
 class Left : Command(emptyList(), "flushleft") {
@@ -95,7 +95,7 @@ class MathMode : Element() {
     }
 
     override fun print(writerState: WriterState) {
-        writerState.apply { println(("$$" + text + "$$").trim()) }
+        writerState.apply { println(("$$$text$$").trim()) }
     }
 
 }
@@ -130,13 +130,13 @@ class Item(args: Args) : Command(args, "item") {
 class DocumentClass(val documentClass: String, args: Args) : AbstractCommand(args, "documentclass") {
     override val commandType = CommandType.LIKE_TAG
     override fun children(): List<Element> = emptyList()
-    override fun additionalInfo(): String = "{" + documentClass + "}"
+    override fun additionalInfo(): String = "{$documentClass}"
 }
 
 class UsePackage(args: Args, val packageName: String) : AbstractCommand(args, "usepackage") {
     override val commandType = CommandType.LIKE_TAG
     override fun children(): List<Element> = emptyList()
-    override fun additionalInfo(): String = "{" + packageName + "}"
+    override fun additionalInfo(): String = "{$packageName}"
 }
 
 class Document : Command(emptyList(), "document") {
