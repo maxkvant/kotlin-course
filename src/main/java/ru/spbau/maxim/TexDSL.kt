@@ -8,7 +8,9 @@ import java.io.PrintStream
 annotation class TexElementMarker
 
 @TexElementMarker
-sealed class Element
+sealed class Element {
+    internal abstract fun print(writerState: WriterState)
+}
 
 enum class CommandType { LIKE_TAG, BEGIN_END }
 
@@ -18,6 +20,12 @@ typealias Args = List<Arg>
 sealed class AbstractCommand(val args: Args, val name: String) : Element() {
     abstract fun children(): List<Element>
     abstract val commandType: CommandType
+
+    override fun print(writerState: WriterState) {
+        writerState.printCommand(this)
+    }
+
+    internal abstract fun additionalInfo(): String
 }
 
 sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
@@ -51,12 +59,19 @@ sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
     operator fun String.unaryPlus() {
         body.add(TextElement(this))
     }
+
+    override fun additionalInfo(): String = ""
 }
 
-class TextElement(val text: String) : Element()
+class TextElement(val text: String) : Element() {
+    override fun print(writerState: WriterState) {
+        writerState.apply { println(text.trim()) }
+    }
+}
 
 class Frame(val title: String, args: Args) : Command(args, "frame") {
     override val commandType: CommandType = CommandType.BEGIN_END
+    override fun additionalInfo(): String = "{" + title + "}"
 }
 
 class Left : Command(emptyList(), "flushleft") {
@@ -78,6 +93,11 @@ class MathMode : Element() {
     operator fun String.unaryPlus() {
         text.append(this + "\n")
     }
+
+    override fun print(writerState: WriterState) {
+        writerState.apply { println(("$$" + text + "$$").trim()) }
+    }
+
 }
 
 open class Items(name: String) : AbstractCommand(emptyList(), name) {
@@ -92,6 +112,8 @@ open class Items(name: String) : AbstractCommand(emptyList(), name) {
         items.add(item)
         return item
     }
+
+    override fun additionalInfo(): String = ""
 }
 
 class CustomTag(name: String, args: Args) : Command(args, name) {
@@ -108,12 +130,13 @@ class Item(args: Args) : Command(args, "item") {
 class DocumentClass(val documentClass: String, args: Args) : AbstractCommand(args, "documentclass") {
     override val commandType = CommandType.LIKE_TAG
     override fun children(): List<Element> = emptyList()
+    override fun additionalInfo(): String = "{" + documentClass + "}"
 }
 
 class UsePackage(args: Args, val packageName: String) : AbstractCommand(args, "usepackage") {
     override val commandType = CommandType.LIKE_TAG
-
     override fun children(): List<Element> = emptyList()
+    override fun additionalInfo(): String = "{" + packageName + "}"
 }
 
 class Document : Command(emptyList(), "document") {
@@ -132,7 +155,7 @@ class Document : Command(emptyList(), "document") {
 
     fun printToStream(outputStream: OutputStream) {
         val printStream = PrintStream(outputStream)
-        Writer(printStream).printElement(this)
+        this.print(WriterState(printStream))
     }
 
     override fun toString(): String {
@@ -141,6 +164,11 @@ class Document : Command(emptyList(), "document") {
         val res = String(baos.toByteArray())
         baos.close()
         return res
+    }
+
+    override fun print(writerState: WriterState) {
+        header().forEach(writerState::printCommand)
+        super.print(writerState)
     }
 }
 
