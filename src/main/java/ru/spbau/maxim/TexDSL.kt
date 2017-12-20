@@ -17,12 +17,30 @@ enum class CommandType { LIKE_TAG, BEGIN_END }
 typealias Arg = Pair<String, String?>
 typealias Args = List<Arg>
 
-sealed class AbstractCommand(val args: Args, val name: String) : Element() {
+sealed class AbstractCommand(private val args: Args, private val name: String) : Element() {
     abstract fun children(): List<Element>
     abstract val commandType: CommandType
 
     override fun print(writerState: WriterState) {
-        writerState.printCommand(this)
+        writerState.apply {
+            fun printChildren(children: List<Element>) {
+                ident {
+                    children.forEach { it.print(this) }
+                }
+            }
+
+            when (commandType) {
+                CommandType.BEGIN_END -> {
+                    println("\\begin{$name}" + argsToString(args) + additionalInfo())
+                    printChildren(children())
+                    println("\\end{$name}")
+                }
+                CommandType.LIKE_TAG -> {
+                    println("\\$name" + argsToString(args) + additionalInfo())
+                    printChildren(children())
+                }
+            }
+        }
     }
 
     internal abstract fun additionalInfo(): String
@@ -63,13 +81,13 @@ sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
     override fun additionalInfo(): String = ""
 }
 
-class TextElement(val text: String) : Element() {
+class TextElement(private val text: String) : Element() {
     override fun print(writerState: WriterState) {
         writerState.apply { println(text.trim()) }
     }
 }
 
-class Frame(val title: String, args: Args) : Command(args, "frame") {
+class Frame(private val title: String, args: Args) : Command(args, "frame") {
     override val commandType: CommandType = CommandType.BEGIN_END
     override fun additionalInfo(): String = "{$title}"
 }
@@ -88,16 +106,15 @@ class Center : Command(emptyList(), "center") {
 
 class MathMode : Element() {
     private val text = StringBuilder()
-    fun text() = text.toString()
+    private fun text() = text.toString()
 
     operator fun String.unaryPlus() {
         text.append(this + "\n")
     }
 
     override fun print(writerState: WriterState) {
-        writerState.apply { println(("$$$text$$").trim()) }
+        writerState.apply { println("$$${text()}$$".trim()) }
     }
-
 }
 
 open class Items(name: String) : AbstractCommand(emptyList(), name) {
@@ -127,13 +144,13 @@ class Item(args: Args) : Command(args, "item") {
     override val commandType = CommandType.LIKE_TAG
 }
 
-class DocumentClass(val documentClass: String, args: Args) : AbstractCommand(args, "documentclass") {
+class DocumentClass(private val documentClass: String, args: Args) : AbstractCommand(args, "documentclass") {
     override val commandType = CommandType.LIKE_TAG
     override fun children(): List<Element> = emptyList()
     override fun additionalInfo(): String = "{$documentClass}"
 }
 
-class UsePackage(args: Args, val packageName: String) : AbstractCommand(args, "usepackage") {
+class UsePackage(args: Args, private val packageName: String) : AbstractCommand(args, "usepackage") {
     override val commandType = CommandType.LIKE_TAG
     override fun children(): List<Element> = emptyList()
     override fun additionalInfo(): String = "{$packageName}"
@@ -143,7 +160,7 @@ class Document : Command(emptyList(), "document") {
     override val commandType = CommandType.BEGIN_END
     private val header = mutableListOf<AbstractCommand>()
 
-    fun header() = header.toList()
+    private fun header() = header.toList()
 
     fun usepackage(newPackage: String, vararg args: Arg) {
         header.add(UsePackage(args.toList(), newPackage))
@@ -153,9 +170,9 @@ class Document : Command(emptyList(), "document") {
         header.add(DocumentClass(documentClass, args.toList()))
     }
 
-    fun printToStream(outputStream: OutputStream) {
+    private fun printToStream(outputStream: OutputStream) {
         val printStream = PrintStream(outputStream)
-        this.print(WriterState(printStream))
+        print(WriterState(printStream))
     }
 
     override fun toString(): String {
@@ -167,7 +184,7 @@ class Document : Command(emptyList(), "document") {
     }
 
     override fun print(writerState: WriterState) {
-        header().forEach(writerState::printCommand)
+        header().forEach { it.print(writerState) }
         super.print(writerState)
     }
 }
