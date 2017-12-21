@@ -53,7 +53,7 @@ sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
 
     private fun <T : Element> addElement(t: T, init: T.() -> Unit): T {
         t.init()
-        return t.also { body.add(t) }
+        return t.also { body.add(it) }
     }
 
     fun frame(title: String, vararg args: Arg, init: Frame.() -> Unit): Frame
@@ -83,7 +83,7 @@ sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
 
 class TextElement(private val text: String) : Element() {
     override fun print(writerState: WriterState) {
-        writerState.apply { println(text.trimMarginWithIdent()) }
+        writerState.printTrimmed(text)
     }
 }
 
@@ -113,7 +113,7 @@ class MathMode : Element() {
     }
 
     override fun print(writerState: WriterState) {
-        writerState.apply { println("$$${text()}$$".trimMarginWithIdent()) }
+        writerState.printTrimmed("$$${text()}$$")
     }
 }
 
