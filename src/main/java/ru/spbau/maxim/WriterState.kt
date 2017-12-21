@@ -7,7 +7,7 @@ internal class WriterState(private val printWriter: PrintStream) {
 
     private fun prefix() = " ".repeat(ident * 2)
 
-    internal fun String.trim(): String {
+    internal fun String.trimMarginWithIdent(): String {
         return this.trimMargin().replace("\n", "\n" + prefix())
     }
 

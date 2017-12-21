@@ -83,7 +83,7 @@ sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
 
 class TextElement(private val text: String) : Element() {
     override fun print(writerState: WriterState) {
-        writerState.apply { println(text.trim()) }
+        writerState.apply { println(text.trimMarginWithIdent()) }
     }
 }
 
@@ -113,7 +113,7 @@ class MathMode : Element() {
     }
 
     override fun print(writerState: WriterState) {
-        writerState.apply { println("$$${text()}$$".trim()) }
+        writerState.apply { println("$$${text()}$$".trimMarginWithIdent()) }
     }
 }
 
@@ -176,11 +176,10 @@ class Document : Command(emptyList(), "document") {
     }
 
     override fun toString(): String {
-        val baos = ByteArrayOutputStream()
-        printToStream(baos)
-        val res = String(baos.toByteArray())
-        baos.close()
-        return res
+        return ByteArrayOutputStream().use {
+            printToStream(it)
+            String(it.toByteArray())
+        }
     }
 
     override fun print(writerState: WriterState) {
