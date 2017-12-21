@@ -53,7 +53,8 @@ sealed class Command(args: Args, name: String) : AbstractCommand(args, name) {
 
     private fun <T : Element> addElement(t: T, init: T.() -> Unit): T {
         t.init()
-        return t.also { body.add(it) }
+        body.add(t)
+        return t
     }
 
     fun frame(title: String, vararg args: Arg, init: Frame.() -> Unit): Frame
