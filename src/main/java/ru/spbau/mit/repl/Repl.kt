@@ -1,11 +1,12 @@
 package ru.spbau.mit.repl
 
 import org.antlr.v4.runtime.CharStreams
-import ru.spbau.mit.Evaluator
+import ru.spbau.mit.*
 import ru.spbau.mit.ast.Block
-import ru.spbau.mit.genAst
-import ru.spbau.mit.toExpr
 import java.io.PrintStream
+import kotlin.coroutines.experimental.Continuation
+import kotlin.coroutines.experimental.EmptyCoroutineContext
+import kotlin.coroutines.experimental.createCoroutine
 
 fun String.toReplCommand(): Command {
     val string = this.trim()
@@ -55,13 +56,25 @@ class Executor(private val printStream: PrintStream) {
 
     fun onCommand(command: Command) {
         fun next() {
-            state!!.iterator.let {
+            /*state!!.iterator.let {
                 if (it.hasNext()) {
                     printStream.println("stopped on line ${it.next()}")
                 } else {
                     state = null
                     running = false
                     printStream.println("program stopped")
+                }
+            }*/
+            state!!.let {
+                it.continuation.resume(Unit)
+
+                if (it.finished()) {
+                    printStream.println("program stopped")
+                    state = null
+                    running = false
+                } else {
+                    it.continuation = it.getMessage().continuation
+                    printStream.println("stopped on line ${it.evaluator.getLine()}")
                 }
             }
         }
@@ -107,7 +120,7 @@ class Executor(private val printStream: PrintStream) {
                     }
                 }
                 is Evaluate -> {
-                    val exprResult = (state?.evaluator ?: Evaluator(printStream)).evalExpr(command.expr)
+                    val exprResult = (state?.evaluator ?: Evaluator(printStream)).evalExpr2(command.expr)
                     printStream.println("$exprResult")
                 }
             }
@@ -116,8 +129,38 @@ class Executor(private val printStream: PrintStream) {
         }
     }
 
-    private class State(ast: Block, printStream: PrintStream) {
-        val evaluator: Evaluator = Evaluator(printStream)
-        val iterator: Iterator<Int> = evaluator.evalStatementIterator(ast)
+    private class State(ast: Block, printStream: PrintStream): EvaluatorMessagesReceiver {
+        val evaluator: Evaluator = Evaluator(printStream, this)
+        private var res: Long? = null
+        private var message: EvaluatorMessage? = null
+
+        private val curRun: suspend EvaluatorMessagesReceiver.() -> Long = {
+            evaluator.evalStatement(ast)
+            evaluator.getResult()
+        }
+
+        var continuation: Continuation<Unit> = curRun.createCoroutine(
+                receiver = this,
+                completion = object: Continuation<Long> {
+                    override fun resume(value: Long) {
+                        res = value
+                    }
+
+                    override fun resumeWithException(exception: Throwable) = throw exception
+
+                    override val context = EmptyCoroutineContext
+                })
+
+        fun finished(): Boolean = res != null
+
+        override fun onMessage(message: EvaluatorMessage) {
+            this.message = message
+        }
+
+        fun getMessage(): EvaluatorMessage {
+            val res = message!!
+            message = null
+            return res
+        }
     }
 }

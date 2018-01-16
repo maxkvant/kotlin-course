@@ -4,22 +4,34 @@ import ru.spbau.mit.ast.*
 import ru.spbau.mit.repl.Breakpoint
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
-import kotlin.coroutines.experimental.SequenceBuilder
-import kotlin.coroutines.experimental.buildIterator
+import kotlin.coroutines.experimental.*
 
 class Evaluator(
         functionScope: Scope<FunctionDef>,
         variableScope: Scope<Long>,
+        private val messagesReceiver: EvaluatorMessagesReceiver,
         private val printStream: PrintStream
 ) {
     constructor(printStream: PrintStream) : this(
             Scope<FunctionDef>(null).apply { put(FunctionDef.printLn.name, FunctionDef.printLn) },
             Scope(null),
+            object: EvaluatorMessagesReceiver {
+                override fun onMessage(message: EvaluatorMessage) {}
+            },
             printStream
     )
 
+    constructor(printStream: PrintStream, messagesReceiver: EvaluatorMessagesReceiver) : this(
+            Scope<FunctionDef>(null).apply { put(FunctionDef.printLn.name, FunctionDef.printLn) },
+            Scope(null),
+            messagesReceiver,
+            printStream
+    )
+
+
     private var state: State = State(functionScope, variableScope)
     private val breakpoints = mutableMapOf<Int, Breakpoint>()
+    private var line: Int = 0
 
     fun setBreakpoint(breakpoint: Breakpoint) {
         breakpoints[breakpoint.line] = breakpoint
@@ -27,24 +39,11 @@ class Evaluator(
 
     fun removeBreakpoint(line: Int) = breakpoints.remove(line)
 
-    fun evalStatementIterator(statement: Statement): Iterator<Int> = buildIterator {
-        evalStatement(statement)
-    }
-
-    fun evalExpr(expr: Expression): Long {
-        var res: Long? = null
-        buildIterator { res = evalExpr(expr) }.forEach { }
-        return res!!
-    }
-
-    fun evalStatement(statement: Statement): Long {
-        evalStatementIterator(statement).forEach { }
-        return state.getRes()
-    }
-
     fun listBreakpoints() = breakpoints.values.toList()
 
-    private suspend fun SequenceBuilder<Int>.runIfNotReturned(f: suspend SequenceBuilder<Int>.() -> Any?): Boolean {
+    fun getResult() = state.getRes()
+
+    private suspend fun runIfNotReturned(f: suspend () -> Any?): Boolean {
         return when (state.returnValue) {
             null -> {
                 f(); true
@@ -53,7 +52,7 @@ class Evaluator(
         }
     }
 
-    private suspend fun SequenceBuilder<Int>.evalExpr(expr: Expression): Long {
+    private suspend fun evalExpr(expr: Expression): Long {
         return when (expr) {
             is Literal -> expr.num
             is BinaryOp -> eval(expr)
@@ -66,7 +65,7 @@ class Evaluator(
         }
     }
 
-    private suspend fun SequenceBuilder<Int>.eval(binOp: BinaryOp): Long {
+    private suspend fun eval(binOp: BinaryOp): Long {
         val lVal = evalExpr(binOp.l)
         val rVal = evalExpr(binOp.r)
         fun toLong(x: Boolean): Long = when (x) {
@@ -97,7 +96,7 @@ class Evaluator(
         }
     }
 
-    private suspend fun SequenceBuilder<Int>.eval(funCall: FunctionCall): Long {
+    private suspend fun eval(funCall: FunctionCall): Long {
         try {
             val args: List<Long> = funCall.args.map { evalExpr(it) }
             val func = state.functionScope.get(funCall.name)
@@ -130,14 +129,28 @@ class Evaluator(
         }
     }
 
-    private suspend fun SequenceBuilder<Int>.onLine(line: Int) {
+    fun evalStatement2(statement: Statement) {
+        runSuspendFun { evalStatement(statement) }
+    }
+
+    fun evalExpr2(expr: Expression): Long {
+        return runSuspendFun { evalExpr(expr) }
+    }
+
+    fun getLine(): Int = line
+
+    private suspend fun onLine(line: Int) {
+        this.line = line
         val condition = breakpoints[line]
         if (condition != null && isTrueExpr(condition.expr)) {
-            yield(line)
+            suspendCoroutine<Unit> {
+                continuation ->
+                messagesReceiver.onMessage(EvaluatorMessage(line, continuation))
+            }
         }
     }
 
-    private suspend fun SequenceBuilder<Int>.evalStatement(statement: Statement) {
+    suspend fun evalStatement(statement: Statement) {
         runIfNotReturned {
             onLine(statement.line)
             when (statement) {
@@ -157,15 +170,15 @@ class Evaluator(
         }
     }
 
-    private suspend fun SequenceBuilder<Int>.eval(whileStatement: While) {
+    private suspend fun eval(whileStatement: While) {
         while (isTrue(whileStatement.loopExpr) && (runIfNotReturned { evalStatement(whileStatement.block) }));
     }
 
-    private suspend fun SequenceBuilder<Int>.isTrue(expr: Expression): Boolean {
+    private suspend fun isTrue(expr: Expression): Boolean {
         return evalExpr(expr) != 0L
     }
 
-    private suspend fun SequenceBuilder<Int>.eval(ifStatement: If) {
+    private suspend fun eval(ifStatement: If) {
         runIfNotReturned {
             if (isTrue(ifStatement.boolExpr)) {
                 evalStatement(ifStatement.blockTrue)
@@ -176,12 +189,30 @@ class Evaluator(
     }
 
     @Suppress("unused")
-    private suspend fun SequenceBuilder<Int>.handleException(line: Int, e: Exception): Nothing {
+    private suspend fun handleException(line: Int, e: Exception): Nothing {
         throw EvaluatorException("error on line $line: ${e.message}", e)
     }
 
     private fun isTrueExpr(expr: Expression): Boolean {
-        return evalExpr(expr) != 0L
+        return evalExpr2(expr) != 0L
+    }
+
+    private fun <T> runSuspendFun(action: suspend () -> T): T {
+        var res: T? = null
+
+        val continuation = action.createCoroutine(completion = object: Continuation<T> {
+            override fun resume(value: T) {
+                res = value
+            }
+
+            override fun resumeWithException(exception: Throwable) = throw exception
+            override val context = EmptyCoroutineContext
+        })
+
+        while (res == null) {
+            continuation.resume(Unit)
+        }
+        return res!!
     }
 
     private class State(
@@ -205,9 +236,9 @@ class Evaluator(
 class EvaluatorException(override val message: String, override val cause: Throwable) : RuntimeException()
 
 fun evaluateExpr(expr: Expression): Long {
-    return Evaluator(PrintStream(ByteArrayOutputStream())).evalExpr(expr)
+    return Evaluator(PrintStream(ByteArrayOutputStream())).evalExpr2(expr)
 }
 
 fun evaluate(block: Block, printStream: PrintStream) {
-    Evaluator(printStream).evalStatement(block)
+    Evaluator(printStream).evalStatement2(block)
 }

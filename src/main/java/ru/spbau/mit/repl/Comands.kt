@@ -6,7 +6,7 @@ import ru.spbau.mit.toExpr
 
 sealed class Command
 
-data class Breakpoint(val line: Int, val exprStr: String) : Command() {
+data class Breakpoint(val line: Int, private val exprStr: String) : Command() {
     constructor(line: Int) : this(line, "1")
 
     val expr: Expression = exprStr.toExpr()
