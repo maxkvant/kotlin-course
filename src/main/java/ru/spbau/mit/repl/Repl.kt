@@ -66,15 +66,14 @@ class Executor(private val printStream: PrintStream) {
                 }
             }*/
             state!!.let {
-                it.continuation.resume(Unit)
+                it.resume()
 
                 if (it.finished()) {
                     printStream.println("program stopped")
                     state = null
                     running = false
                 } else {
-                    it.continuation = it.getMessage().continuation
-                    printStream.println("stopped on line ${it.evaluator.getLine()}")
+                    printStream.println("stopped on line ${it.getLine()}")
                 }
             }
         }
@@ -132,14 +131,14 @@ class Executor(private val printStream: PrintStream) {
     private class State(ast: Block, printStream: PrintStream): EvaluatorMessagesReceiver {
         val evaluator: Evaluator = Evaluator(printStream, this)
         private var res: Long? = null
-        private var message: EvaluatorMessage? = null
+        private var line: Int? = null
 
         private val curRun: suspend EvaluatorMessagesReceiver.() -> Long = {
             evaluator.evalStatement(ast)
             evaluator.getResult()
         }
 
-        var continuation: Continuation<Unit> = curRun.createCoroutine(
+        private var continuation: Continuation<Unit> = curRun.createCoroutine(
                 receiver = this,
                 completion = object: Continuation<Long> {
                     override fun resume(value: Long) {
@@ -147,20 +146,18 @@ class Executor(private val printStream: PrintStream) {
                     }
 
                     override fun resumeWithException(exception: Throwable) = throw exception
-
                     override val context = EmptyCoroutineContext
                 })
 
         fun finished(): Boolean = res != null
 
         override fun onMessage(message: EvaluatorMessage) {
-            this.message = message
+            line = message.line
+            continuation = message.continuation
         }
 
-        fun getMessage(): EvaluatorMessage {
-            val res = message!!
-            message = null
-            return res
-        }
+        fun resume() = continuation.resume(Unit)
+
+        fun getLine(): Int = line!!
     }
 }

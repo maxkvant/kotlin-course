@@ -15,8 +15,7 @@ fun genAst(charStream: CharStream): Block {
     val tokens = CommonTokenStream(lexer)
     val parser = FunLangParser(tokens)
     val visitor = FunLangVisitor()
-    val ast = visitor.visit(parser.block()) as Block
-    return ast
+    return visitor.visit(parser.block()) as Block
 }
 
 fun String.toExpr(): Expression {

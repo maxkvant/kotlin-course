@@ -13,32 +13,6 @@ import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 
 class TestsDebugger {
-    /*@Test
-    fun test1() {
-        fun init(str: String): Pair<Block, Evaluator> {
-            val ast = astFromString(str)
-            val baos = ByteArrayOutputStream()
-            val printStream = PrintStream(baos)
-            return Pair(ast, Evaluator(printStream))
-        }
-
-        val (ast, evaluator) = init("""| var x = 1
-                                       | while (x < 3) {
-                                       |   x = x + 1
-                                       | } """.trimMargin())
-        evaluator.setBreakpoint(Breakpoint(3))
-        val iterator = evaluator.evalStatementIterator(ast)
-        iterator.next()
-
-        val xExpr = VariableCall(Identifier("x"), 3)
-        MatcherAssert.assertThat(evaluator.evalExpr2(xExpr), Is.`is`<Long>(1))
-
-        iterator.next()
-        MatcherAssert.assertThat(evaluator.evalExpr2(xExpr), Is.`is`<Long>(2))
-
-        MatcherAssert.assertThat(iterator.hasNext(), Is.`is`(false))
-    }*/
-
     private fun ByteArrayOutputStream.getString(): String {
         val res = this.toString("UTF8")
         this.reset()

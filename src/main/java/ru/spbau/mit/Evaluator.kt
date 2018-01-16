@@ -31,7 +31,6 @@ class Evaluator(
 
     private var state: State = State(functionScope, variableScope)
     private val breakpoints = mutableMapOf<Int, Breakpoint>()
-    private var line: Int = 0
 
     fun setBreakpoint(breakpoint: Breakpoint) {
         breakpoints[breakpoint.line] = breakpoint
@@ -137,10 +136,7 @@ class Evaluator(
         return runSuspendFun { evalExpr(expr) }
     }
 
-    fun getLine(): Int = line
-
     private suspend fun onLine(line: Int) {
-        this.line = line
         val condition = breakpoints[line]
         if (condition != null && isTrueExpr(condition.expr)) {
             suspendCoroutine<Unit> {
