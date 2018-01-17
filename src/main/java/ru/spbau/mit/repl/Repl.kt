@@ -56,15 +56,6 @@ class Executor(private val printStream: PrintStream) {
 
     fun onCommand(command: Command) {
         fun next() {
-            /*state!!.iterator.let {
-                if (it.hasNext()) {
-                    printStream.println("stopped on line ${it.next()}")
-                } else {
-                    state = null
-                    running = false
-                    printStream.println("program stopped")
-                }
-            }*/
             state!!.let {
                 it.resume()
 
@@ -119,7 +110,7 @@ class Executor(private val printStream: PrintStream) {
                     }
                 }
                 is Evaluate -> {
-                    val exprResult = (state?.evaluator ?: Evaluator(printStream)).evalExpr2(command.expr)
+                    val exprResult = (state?.evaluator ?: Evaluator(printStream)).evalExprNotSuspend(command.expr)
                     printStream.println("$exprResult")
                 }
             }
@@ -133,21 +124,23 @@ class Executor(private val printStream: PrintStream) {
         private var res: Long? = null
         private var line: Int? = null
 
-        private val curRun: suspend EvaluatorMessagesReceiver.() -> Long = {
-            evaluator.evalStatement(ast)
-            evaluator.getResult()
-        }
+        private var continuation: Continuation<Unit> = {
+            val curRun: suspend EvaluatorMessagesReceiver.() -> Long = {
+                evaluator.evalStatement(ast)
+                evaluator.getResult()
+            }
 
-        private var continuation: Continuation<Unit> = curRun.createCoroutine(
-                receiver = this,
-                completion = object: Continuation<Long> {
-                    override fun resume(value: Long) {
-                        res = value
-                    }
+            curRun.createCoroutine(
+                    receiver = this,
+                    completion = object : Continuation<Long> {
+                        override fun resume(value: Long) {
+                            res = value
+                        }
 
-                    override fun resumeWithException(exception: Throwable) = throw exception
-                    override val context = EmptyCoroutineContext
-                })
+                        override fun resumeWithException(exception: Throwable) = throw exception
+                        override val context = EmptyCoroutineContext
+                    })
+        } ()
 
         fun finished(): Boolean = res != null
 

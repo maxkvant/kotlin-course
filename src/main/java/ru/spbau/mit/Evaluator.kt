@@ -128,11 +128,11 @@ class Evaluator(
         }
     }
 
-    fun evalStatement2(statement: Statement) {
+    fun evalStatementNotSuspend(statement: Statement) {
         runSuspendFun { evalStatement(statement) }
     }
 
-    fun evalExpr2(expr: Expression): Long {
+    fun evalExprNotSuspend(expr: Expression): Long {
         return runSuspendFun { evalExpr(expr) }
     }
 
@@ -184,13 +184,12 @@ class Evaluator(
         }
     }
 
-    @Suppress("unused")
     private suspend fun handleException(line: Int, e: Exception): Nothing {
         throw EvaluatorException("error on line $line: ${e.message}", e)
     }
 
     private fun isTrueExpr(expr: Expression): Boolean {
-        return evalExpr2(expr) != 0L
+        return evalExprNotSuspend(expr) != 0L
     }
 
     private fun <T> runSuspendFun(action: suspend () -> T): T {
@@ -232,9 +231,9 @@ class Evaluator(
 class EvaluatorException(override val message: String, override val cause: Throwable) : RuntimeException()
 
 fun evaluateExpr(expr: Expression): Long {
-    return Evaluator(PrintStream(ByteArrayOutputStream())).evalExpr2(expr)
+    return Evaluator(PrintStream(ByteArrayOutputStream())).evalExprNotSuspend(expr)
 }
 
 fun evaluate(block: Block, printStream: PrintStream) {
-    Evaluator(printStream).evalStatement2(block)
+    Evaluator(printStream).evalStatementNotSuspend(block)
 }
