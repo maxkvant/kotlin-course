@@ -202,7 +202,7 @@ class Evaluator(
 fun <T> runSuspendFun(action: suspend () -> T): T {
     var res: T? = null
 
-    val continuation = action.createCoroutine(completion = object: Continuation<T> {
+    action.startCoroutine(completion = object: Continuation<T> {
         override fun resume(value: T) {
             res = value
         }
@@ -210,7 +210,6 @@ fun <T> runSuspendFun(action: suspend () -> T): T {
         override fun resumeWithException(exception: Throwable) = throw exception
         override val context = EmptyCoroutineContext
     })
-    continuation.resume(Unit)
 
     return res!!
 }
