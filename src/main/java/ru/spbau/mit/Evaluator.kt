@@ -9,7 +9,7 @@ import kotlin.coroutines.experimental.*
 class Evaluator(
         functionScope: Scope<FunctionDef>,
         variableScope: Scope<Long>,
-        private val messagesReceiver: DebugAction,
+        private val debugAction: DebugAction,
         private val printStream: PrintStream
 ) {
     constructor(printStream: PrintStream) : this(
@@ -51,7 +51,7 @@ class Evaluator(
         }
     }
 
-    private suspend fun evalExpr(expr: Expression): Long {
+    suspend fun evalExpr(expr: Expression): Long {
         return when (expr) {
             is Literal -> expr.num
             is BinaryOp -> eval(expr)
@@ -139,7 +139,7 @@ class Evaluator(
     private suspend fun onLine(line: Int) {
         val condition = breakpoints[line]
         if (condition != null && isTrueExpr(condition.expr)) {
-            messagesReceiver.onLine(line)
+            debugAction.onLine(line)
         }
     }
 
@@ -189,24 +189,6 @@ class Evaluator(
         return evalExprNotSuspend(expr) != 0L
     }
 
-    private fun <T> runSuspendFun(action: suspend () -> T): T {
-        var res: T? = null
-
-        val continuation = action.createCoroutine(completion = object: Continuation<T> {
-            override fun resume(value: T) {
-                res = value
-            }
-
-            override fun resumeWithException(exception: Throwable) = throw exception
-            override val context = EmptyCoroutineContext
-        })
-
-        while (res == null) {
-            continuation.resume(Unit)
-        }
-        return res!!
-    }
-
     private class State(
             val functionScope: Scope<FunctionDef>,
             val variableScope: Scope<Long>
@@ -225,12 +207,32 @@ class Evaluator(
     }
 }
 
+fun <T> runSuspendFun(action: suspend () -> T): T {
+    var res: T? = null
+
+    val continuation = action.createCoroutine(completion = object: Continuation<T> {
+        override fun resume(value: T) {
+            res = value
+        }
+
+        override fun resumeWithException(exception: Throwable) = throw exception
+        override val context = EmptyCoroutineContext
+    })
+    continuation.resume(Unit)
+
+    return res!!
+}
+
 class EvaluatorException(override val message: String, override val cause: Throwable) : RuntimeException()
 
 fun evaluateExpr(expr: Expression): Long {
-    return Evaluator(PrintStream(ByteArrayOutputStream())).evalExprNotSuspend(expr)
+    return runSuspendFun {
+        Evaluator(PrintStream(ByteArrayOutputStream())).evalExpr(expr)
+    }
 }
 
 fun evaluate(block: Block, printStream: PrintStream) {
-    Evaluator(printStream).evalStatementNotSuspend(block)
+    runSuspendFun {
+        Evaluator(printStream).evalStatement(block)
+    }
 }

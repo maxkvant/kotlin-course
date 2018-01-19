@@ -111,7 +111,9 @@ class Executor(private val printStream: PrintStream) {
                     }
                 }
                 is Evaluate -> {
-                    val exprResult = (state?.evaluator ?: Evaluator(printStream)).evalExprNotSuspend(command.expr)
+                    val exprResult = runSuspendFun {
+                        (state?.evaluator ?: Evaluator(printStream)).evalExpr(command.expr)
+                    }
                     printStream.println("$exprResult")
                 }
             }
