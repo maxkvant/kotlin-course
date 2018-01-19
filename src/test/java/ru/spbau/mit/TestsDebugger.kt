@@ -1,11 +1,8 @@
 package ru.spbau.mit
 
-import org.hamcrest.MatcherAssert
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.`is`
-import org.hamcrest.core.Is
 import org.junit.Test
-import ru.spbau.mit.ast.Block
 import ru.spbau.mit.ast.Identifier
 import ru.spbau.mit.ast.VariableCall
 import ru.spbau.mit.repl.*

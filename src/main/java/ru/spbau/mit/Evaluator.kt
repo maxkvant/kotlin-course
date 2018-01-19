@@ -128,14 +128,6 @@ class Evaluator(
         }
     }
 
-    fun evalStatementNotSuspend(statement: Statement) {
-        runSuspendFun { evalStatement(statement) }
-    }
-
-    fun evalExprNotSuspend(expr: Expression): Long {
-        return runSuspendFun { evalExpr(expr) }
-    }
-
     private suspend fun onLine(line: Int) {
         val condition = breakpoints[line]
         if (condition != null && isTrueExpr(condition.expr)) {
@@ -186,7 +178,7 @@ class Evaluator(
     }
 
     private fun isTrueExpr(expr: Expression): Boolean {
-        return evalExprNotSuspend(expr) != 0L
+        return runSuspendFun { evalExpr(expr) != 0L }
     }
 
     private class State(
