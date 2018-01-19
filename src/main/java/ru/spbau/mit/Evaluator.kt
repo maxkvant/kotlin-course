@@ -9,19 +9,19 @@ import kotlin.coroutines.experimental.*
 class Evaluator(
         functionScope: Scope<FunctionDef>,
         variableScope: Scope<Long>,
-        private val messagesReceiver: EvaluatorMessagesReceiver,
+        private val messagesReceiver: DebugAction,
         private val printStream: PrintStream
 ) {
     constructor(printStream: PrintStream) : this(
             Scope<FunctionDef>(null).apply { put(FunctionDef.printLn.name, FunctionDef.printLn) },
             Scope(null),
-            object: EvaluatorMessagesReceiver {
-                override fun onMessage(message: EvaluatorMessage) {}
+            object: DebugAction {
+                override suspend fun onLine(line: Int) {}
             },
             printStream
     )
 
-    constructor(printStream: PrintStream, messagesReceiver: EvaluatorMessagesReceiver) : this(
+    constructor(printStream: PrintStream, messagesReceiver: DebugAction) : this(
             Scope<FunctionDef>(null).apply { put(FunctionDef.printLn.name, FunctionDef.printLn) },
             Scope(null),
             messagesReceiver,
@@ -139,10 +139,7 @@ class Evaluator(
     private suspend fun onLine(line: Int) {
         val condition = breakpoints[line]
         if (condition != null && isTrueExpr(condition.expr)) {
-            suspendCoroutine<Unit> {
-                continuation ->
-                messagesReceiver.onMessage(EvaluatorMessage(line, continuation))
-            }
+            messagesReceiver.onLine(line)
         }
     }
 

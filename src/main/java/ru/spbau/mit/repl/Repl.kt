@@ -7,6 +7,7 @@ import java.io.PrintStream
 import kotlin.coroutines.experimental.Continuation
 import kotlin.coroutines.experimental.EmptyCoroutineContext
 import kotlin.coroutines.experimental.createCoroutine
+import kotlin.coroutines.experimental.suspendCoroutine
 
 fun String.toReplCommand(): Command {
     val string = this.trim()
@@ -119,13 +120,13 @@ class Executor(private val printStream: PrintStream) {
         }
     }
 
-    private class State(ast: Block, printStream: PrintStream): EvaluatorMessagesReceiver {
+    private class State(ast: Block, printStream: PrintStream): DebugAction {
         val evaluator: Evaluator = Evaluator(printStream, this)
         private var res: Long? = null
         private var line: Int? = null
 
         private var continuation: Continuation<Unit> = {
-            val curRun: suspend EvaluatorMessagesReceiver.() -> Long = {
+            val curRun: suspend DebugAction.() -> Long = {
                 evaluator.evalStatement(ast)
                 evaluator.getResult()
             }
@@ -144,9 +145,11 @@ class Executor(private val printStream: PrintStream) {
 
         fun finished(): Boolean = res != null
 
-        override fun onMessage(message: EvaluatorMessage) {
-            line = message.line
-            continuation = message.continuation
+        override suspend fun onLine(line: Int) {
+            this.line = line
+            suspendCoroutine<Unit> { continuation ->
+                this.continuation = continuation
+            }
         }
 
         fun resume() = continuation.resume(Unit)
